@@ -56,15 +56,15 @@
         <input type="date" id="data-input">
         <input type="text" id="item-input" placeholder="Digite um código" onkeydown="verificarTecla(event)" disabled>
         <button onclick="verificarItem()">Inserir Manualmente</button>
-        <button onclick="gerarPDF()">Enviar Conferência</button>
+        <button onclick="gerarCSV()">Enviar Conferência</button>
     </div>
-<div class="dropdown  list">
-    <select id="select-cidade" onchange="atualizarAba(this.value)">
-        <option value="Niteroi" selected>Niteroi</option>
-        <option value="Rio de Janeiro">Rio de Janeiro</option>
-        <option value="SaoGoncalo">São Gonçalo</option>
-    </select>
-</div>
+    <div class="dropdown list">
+        <select id="select-cidade" onchange="atualizarAba(this.value)">
+            <option value="Niteroi" selected>Niteroi</option>
+            <option value="Rio de Janeiro">Rio de Janeiro</option>
+            <option value="SaoGoncalo">São Gonçalo</option>
+        </select>
+    </div>
     <ul id="result-list"></ul>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
@@ -76,16 +76,13 @@
         let itemsList = [];
         let checkedItems = new Set(); // Set para armazenar itens verificados
         let checkedItemsArray = []; // Array para armazenar itens verificados em ordem
-        
+
         function atualizarAba(aba) {
-         abaAtual = aba;
-         RANGE = `${aba}!A:C`;
-         itemsList = []; // Limpa a lista de itens para forçar atualização na próxima verificação
-         checkedItems.clear(); // Limpa o Set de itens verificados
-}
-
-
-
+            abaAtual = aba;
+            RANGE = `${aba}!A:C`;
+            itemsList = []; // Limpa a lista de itens para forçar atualização na próxima verificação
+            checkedItems.clear(); // Limpa o Set de itens verificados
+        }
 
         document.getElementById('nome-input').addEventListener('input', function() {
             const nome = this.value.trim();
@@ -135,25 +132,40 @@
             }
             resultList.appendChild(listItem);
             checkedItems.add(item); // Adiciona o item ao Set de itens verificados
-            checkedItemsArray.push(listItem.textContent); // Adiciona o item ao Array
+            checkedItemsArray.push({ nome, item, status: listItem.textContent.split(' - ')[1] }); // Adiciona o item ao Array
             document.getElementById('item-input').value = ''; // Limpa a caixa de digitação
         }
 
-        function gerarPDF() {
+        function gerarCSV() {
             if (checkedItemsArray.length === 0) {
-                alert("Não há itens para gerar o PDF.");
+                alert("Não há itens para gerar o CSV.");
                 return;
             }
 
-            const content = checkedItemsArray.join('\n');
-            const formData = new FormData();
             const nome = document.getElementById('nome-input').value.trim();
             const data = document.getElementById('data-input').value;
-            const aba = abaAtual;
-            const status = "Sucesso";
-            const blob = new Blob([content], { type: 'text/plain' });
-            formData.append('chat_id', '-4200936402,'); // Substitua pelo ID do chat desejado
-            formData.append('document', blob, 'itens_verificados.txt');
+            const header = ["Nome", "Data", "Aba", "Item", "Status"];
+            const rows = checkedItemsArray.map(e => [nome, data, abaAtual, e.item, e.status]);
+            const csvContent = [header, ...rows].map(e => e.join(",")).join("\n");
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "itens_verificados.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            enviarArquivoTelegram(csvContent);
+        }
+
+        function enviarArquivoTelegram(csvContent) {
+            const formData = new FormData();
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            formData.append('chat_id', '-4200936402'); // Substitua pelo ID do chat desejado
+            formData.append('document', blob, 'itens_verificados.csv');
 
             fetch(`https://api.telegram.org/bot7272225151:AAFyfJNQOfHt-1YCo0HH8kKwrFpwBLyn9kk/sendDocument`, {
                 method: 'POST',
@@ -164,7 +176,7 @@
                     throw new Error('Erro ao enviar documento via Telegram');
                 }
                 console.log('Documento enviado via Telegram com sucesso!');
-                alert("PDF enviado com sucesso!");
+                alert("CSV enviado com sucesso!");
                 // Limpar a lista de itens verificados após o envio bem-sucedido
                 const resultList = document.getElementById('result-list');
                 resultList.innerHTML = '';
@@ -172,16 +184,17 @@
             })
             .catch(error => {
                 console.error('Erro ao enviar documento via Telegram:', error);
-                alert("Erro ao enviar PDF via Telegram.");
+                alert("Erro ao enviar CSV via Telegram.");
             });
 
-            // Enviar mensagem com nome, data, aba e status para o Telegram
-            enviarMensagemTelegram(nome, data, aba, status);
+            enviarMensagemTelegram();
         }
 
-        function enviarMensagemTelegram(nome, data, aba, status) {
-            // Aqui você envia a mensagem via Telegram
-            // Substitua 'SEU_TOKEN' pelo token do seu bot e 'SEU_CHAT_ID' pelo ID do chat para onde deseja enviar
+        function enviarMensagemTelegram() {
+            const nome = document.getElementById('nome-input').value.trim();
+            const data = document.getElementById('data-input').value;
+            const aba = abaAtual;
+            const status = "Sucesso";
             let mensagem = `Nome: ${nome}\nData: ${data}\nAba: ${aba}\nStatus: ${status}`;
             fetch(`https://api.telegram.org/bot7272225151:AAFyfJNQOfHt-1YCo0HH8kKwrFpwBLyn9kk/sendMessage`, {
                 method: 'POST',
@@ -189,7 +202,7 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    chat_id: '-4200936402,',
+                    chat_id: '-4200936402',
                     text: mensagem
                 })
             })
@@ -211,17 +224,13 @@
         }
 
         function atualizarAba(aba) {
-            // Remove a classe 'selected' de todos os botões
             document.querySelectorAll('button').forEach(btn => btn.classList.remove('selected'));
             abaAtual = aba;
             RANGE = `${aba}!A:C`;
             itemsList = []; // Limpa a lista de itens para forçar atualização na próxima verificação
             checkedItems.clear(); // Limpa o Set de itens verificados
-            // Adiciona a classe 'selected' apenas ao botão clicado
             document.getElementById(`btn${aba.replace(/\s/g, '')}`).classList.add('selected');
         }
     </script>
 </body>
 </html>
-
-               
