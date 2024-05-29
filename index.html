@@ -110,7 +110,7 @@
         <input type="text" id="nome-input" placeholder="Digite seu nome" required disabled>
         <input type="date" id="data-input" disabled>
         <input type="text" id="item-input" placeholder="Digite um código" onkeydown="verificarTecla(event)" disabled>
-        <button class="btn btn-outline-dark" onclick="gerarCSV(); window.location.reload()">Enviar Conferência</button>
+        <button class="btn btn-outline-dark" onclick="gerarCSV()">Enviar Conferência</button>
     </div>
    
     <ul id="result-list"></ul>
@@ -270,6 +270,7 @@ function enviarArquivoTelegram(csvContent) {
     });
 
     enviarMensagemTelegram();
+    window.location.reload();
 }
 
 function enviarMensagemTelegram() {
