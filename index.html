@@ -263,6 +263,7 @@ function enviarArquivoTelegram(csvContent) {
         const resultList = document.getElementById('result-list');
         resultList.innerHTML = '';
         checkedItemsArray = [];
+        window.location.reload();
     })
     .catch(error => {
         console.error('Erro ao enviar documento via Telegram:', error);
@@ -294,7 +295,6 @@ function enviarMensagemTelegram() {
             throw new Error('Erro ao enviar mensagem via Telegram');
         }
         console.log('Mensagem enviada via Telegram com sucesso!');
-        //window.location.reload();
     })
     .catch(error => {
         console.error('Erro ao enviar mensagem via Telegram:', error);
