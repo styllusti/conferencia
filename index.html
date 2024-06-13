@@ -294,7 +294,7 @@ function enviarMensagemTelegram() {
             throw new Error('Erro ao enviar mensagem via Telegram');
         }
         console.log('Mensagem enviada via Telegram com sucesso!');
-        window.location.reload();
+        //window.location.reload();
     })
     .catch(error => {
         console.error('Erro ao enviar mensagem via Telegram:', error);
